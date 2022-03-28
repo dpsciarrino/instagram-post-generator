@@ -1,0 +1,6 @@
+Verbigo_logo.png
+new.sqlite3
+posts/*
+img/*
+__pycache__/*
+utility_personal.py
