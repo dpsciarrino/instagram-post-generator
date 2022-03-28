@@ -1,109 +1,9 @@
+# CODE ADAPTED FROM JC Chouinard FROM ARTICLE:
+# https://www.jcchouinard.com/create-feature-image-with-python-pillow/
+
 from random import randint
-import requests
-from bs4 import BeautifulSoup
-import sqlite3
 from constants import *
 from PIL import Image, ImageDraw, ImageFont
-
-def get_page_content(URL):
-    req = None
-    headers = {
-        'Accept-Language': 'en-US,en',
-        'Host':'dictionary.cambridge.org',
-        'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36'
-    }
-    try:
-        req = requests.get(URL, headers=headers)
-    except requests.exceptions.RequestException as e:
-        print(e.args)
-    
-    if req == None:
-        print("Response was empty")
-        return -1
-    
-    html = req.text
-    bs = BeautifulSoup(html, 'html.parser')
-
-    return bs
-
-def get_translation(verb):
-    BASE_URL = 'https://dictionary.cambridge.org/dictionary/italian-english/'
-    URL = BASE_URL + verb
-
-    bs = get_page_content(URL)
-
-    senses = [item.text for item in bs.find('div', {'class':'def-body'}).find_all('span', {'class':'trans dtrans', 'lang':'en'})]
-    translation = ""
-    for sense in senses:
-        if senses[0] != sense:
-            translation = translation + ", " + sense
-        else:
-            translation = sense
-    
-    return translation
-
-def get_random_verb(db_file_name='new.sqlite3', db_table='app_verb') -> str:
-    NUM_OF_VERBS = 17619
-    _id = randint(1, NUM_OF_VERBS)
-
-    conn = sqlite3.connect(db_file_name)
-    cursor = conn.cursor()
-    sql = f"""SELECT verb FROM {db_table} WHERE id = {_id}"""
-    cursor.execute(sql)
-    conn.commit()
-    result = cursor.fetchone()
-    conn.close()
-    try:
-        result = result[0]
-    except Exception as e:
-        print(e.args)
-        return None
-    
-    return result
-
-def get_closest_match(verb):
-    '''
-    Here, we know that the resulting webpage only gives us 
-    suggested search results.
-
-    Choose the first result and search for that.
-    '''
-    BASE_URL = 'https://dictionary.cambridge.org/spellcheck/italian-english/?q='
-    URL = BASE_URL + verb
-    bs = get_page_content(URL)
-
-    container = bs.find('div', {'class':'hfl-s lt2b lmt-10 lmb-25 lp-s_r-20'})
-
-    new_verb = ""
-    new_verbs_to_try = container.find_all('a')
-    for v in new_verbs_to_try:
-        new_verb = v.getText()
-        translation = get_translation(new_verb)
-        if "to" in translation:
-            break
-
-    return new_verb, translation
-
-
-def getImageText(verb = ''):
-    '''
-    Returns a 2-tuple with the image text to display
-    verb, translation
-    '''
-    if verb == '':
-        italian_verb = get_random_verb()
-    else:    
-        italian_verb = verb
-    
-    english_translation = ""
-    try:
-        english_translation = get_translation(italian_verb)
-    except AttributeError as e:
-        # If the verb does not exist in the cambridge dictionary...
-        italian_verb, english_translation = get_closest_match(italian_verb)
-
-    return italian_verb, english_translation
-
 
 def get_image_files() -> list:
     '''
@@ -121,6 +21,7 @@ def getBackgroundImage():
     img_files = get_image_files()
     background_image = img_files[randint(0, len(img_files)-1)]
     return Image.open(background_image)
+
 
 # Make sure the text is centered
 def center_text(img, font, text1, text2, fill1, fill2, font2=''):
